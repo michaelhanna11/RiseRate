@@ -24,13 +24,13 @@ FALLBACK_LOGO_URL = "https://onedrive.live.com/download?cid=A48CC9068E3FACE0&res
 def calculate_rate_of_rise(Pmax, D, H_form, T, C1, C2):
     K = (36 / (T + 16))**2
     def pressure_equation(R):
-        if R <= 0:
-            return 1e6
+        if R <= 0:  # Handle negative or zero R
+            return 1e6  # Large penalty
         term1 = C1 * np.sqrt(R)
         if H_form <= term1:
             return D * H_form - Pmax
         return D * (term1 + C2 * K * np.sqrt(H_form - term1)) - Pmax
-    R_guess = max(0.1, (Pmax / D - C2 * K * np.sqrt(H_form)) / C1)**2 if (Pmax / D - C2 * K * np.sqrt(H_form)) > 0 else 0.1
+    R_guess = max(0.1, ((Pmax / D - C2 * K * np.sqrt(H_form)) / C1)**2) if (Pmax / D - C2 * K * np.sqrt(H_form)) > 0 else 0.1
     R_solution, info, ier, msg = fsolve(pressure_equation, R_guess, xtol=1e-8, maxfev=2000, full_output=True)
     return R_solution[0] if 0 < R_solution[0] <= 10 else float('nan')
 
@@ -59,7 +59,7 @@ if not (0 < D <= 30):
     st.error("Density must be between 0 and 30 kN/m³")
 elif not (5 <= T_min <= T_max <= 30):
     st.error("Temperatures must be between 5 and 30°C, with T_min <= T_max")
-elif not (0 < H_concrete >= H_form <= 50):
+elif not (0 < H_concrete <= H_form <= 50):  # Fixed typo: >= to <=
     st.error("Heights must be positive, with concrete height <= formwork height <= 50 m")
 elif not (0 < C2 <= 1.0):
     st.error("C2 coefficient must be between 0 and 1.0")
