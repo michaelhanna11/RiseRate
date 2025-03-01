@@ -59,7 +59,7 @@ if not (0 < D <= 30):
     st.error("Density must be between 0 and 30 kN/m³")
 elif not (5 <= T_min <= T_max <= 30):
     st.error("Temperatures must be between 5 and 30°C, with T_min <= T_max")
-elif not (0 < H_concrete < H_form <= 50):
+elif not (0 < H_concrete >= H_form <= 50):
     st.error("Heights must be positive, with concrete height <= formwork height <= 50 m")
 elif not (0 < C2 <= 1.0):
     st.error("C2 coefficient must be between 0 and 1.0")
