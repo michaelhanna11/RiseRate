@@ -36,7 +36,10 @@ def calculate_rate_of_rise(Pmax, D, H_form, T, C1, C2):
         return D * (term1 + C2 * K * np.sqrt(H_form - term1)) - Pmax
     R_guess = max(0.1, (Pmax / D - C2 * K * np.sqrt(H_form)) / C1)**2 if (Pmax / D - C2 * K * np.sqrt(H_form)) > 0 else 0.1
     R_solution, info, ier, msg = fsolve(pressure_equation, R_guess, xtol=1e-8, maxfev=2000, full_output=True)
-    return R_solution[0] if 0 < R_solution[0] <= 10 else float('nan')
+    
+    # Set rate to zero if it's below 0.2 m/hr
+    result = R_solution[0] if 0 < R_solution[0] <= 10 else float('nan')
+    return 0.0 if result < 0.2 else result
 
 def build_elements(inputs, max_R, y_max, project_number, project_name):
     styles = getSampleStyleSheet()
