@@ -129,6 +129,9 @@ def generate_pdf_report(inputs, max_R, y_max, project_number, project_name):
     return pdf_buffer.getvalue()
 
 def main():
+    # Set page configuration with a title for the browser tab
+    st.set_page_config(page_title="Rise Rate Calculator - AS 3610.2:2023")
+    
     st.markdown(
         """
         <h1 style='font-size: 24px; margin-top: 0; margin-bottom: 10px;'>
