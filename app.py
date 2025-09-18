@@ -17,31 +17,57 @@ import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 # Program metadata
-PROGRAM_VERSION = "2.0 - 2025"
-PROGRAM = "Rise Rate Calculator to AS 3610.2:2023"
-COMPANY_NAME = "tekhne Consulting Engineers"
-COMPANY_ADDRESS = "   "  # Update with actual address if needed
+PROGRAM_INFO = {
+    "version": "2.0 - 2025",
+    "program_name": "Rise Rate Calculator to AS 3610.2:2023",
+    "company_name": "tekhne Consulting Engineers",
+    "company_address": "    "
+}
 LOGO_URL = "https://drive.google.com/uc?export=download&id=1VebdT2loVGX57noP9t2GgQhwCNn8AA3h"
 FALLBACK_LOGO_URL = "https://onedrive.live.com/download?cid=A48CC9068E3FACE0&resid=A48CC9068E3FACE0%21s252b6fb7fcd04f53968b2a09114d33ed"
 
 @st.cache_data
 def calculate_rate_of_rise(Pmax, D, H_form, T, C1, C2):
+    """
+    Calculates the rate of rise (R) based on AS 3610.2:2023, Annex B.
+    Handles both hydrostatic and general pressure equations.
+    """
     K = (36 / (T + 16))**2
+    
+    # Check if the pressure is within the hydrostatic range
+    # Pmax <= P_hydro_limit where P_hydro_limit = D * C1 * sqrt(10 m/hr)
+    # R_max is 10 m/hr per the standard
+    P_hydro_limit = D * C1 * np.sqrt(10.0)
+    
+    if Pmax <= P_hydro_limit:
+        def hydrostatic_equation(R):
+            return D * C1 * np.sqrt(R) - Pmax
+        R_hydro, _, ier, _ = fsolve(hydrostatic_equation, 1.0, full_output=True)
+        if ier == 1 and R_hydro[0] > 0.2:
+            return R_hydro[0]
+        else:
+            # Fallback to general equation if fsolve fails or result is too small
+            pass
+            
+    # General pressure equation
     def pressure_equation(R):
         if R <= 0:
-            return 1e6
+            return 1e6 # Return a large number to steer fsolve away from invalid solutions
         term1 = C1 * np.sqrt(R)
         if H_form <= term1:
             return D * H_form - Pmax
         return D * (term1 + C2 * K * np.sqrt(H_form - term1)) - Pmax
     
     R_guess = max(0.1, (Pmax / D - C2 * K * np.sqrt(H_form)) / C1)**2 if (Pmax / D - C2 * K * np.sqrt(H_form)) > 0 else 0.1
-    R_solution, info, ier, msg = fsolve(pressure_equation, R_guess, xtol=1e-8, maxfev=2000, full_output=True)
+    R_solution, _, ier, _ = fsolve(pressure_equation, R_guess, xtol=1e-8, maxfev=2000, full_output=True)
     
     result = R_solution[0] if 0 < R_solution[0] <= 10 else float('nan')
     return 0.0 if result < 0.2 else result
 
 def get_company_logo():
+    """
+    Downloads the company logo from a URL.
+    """
     try:
         for url in [LOGO_URL, FALLBACK_LOGO_URL]:
             response = requests.get(url, stream=True, timeout=10)
@@ -52,6 +78,9 @@ def get_company_logo():
     return None
 
 def create_graph_image(inputs, project_name, show_all_c2):
+    """
+    Generates a graph of Rise Rate vs. Temperature.
+    """
     T_range = np.linspace(inputs['T_min'], inputs['T_max'], 50)
     fig, ax = plt.subplots(figsize=(10, 6))
     
@@ -61,7 +90,7 @@ def create_graph_image(inputs, project_name, show_all_c2):
     
     # Plot selected C2
     R_values = [calculate_rate_of_rise(inputs['Pmax'], inputs['D'], inputs['H_form'], T, inputs['C1'], inputs['C2']) 
-               for T in T_range]
+                for T in T_range]
     ax.plot(T_range, R_values, color=colors[c2_values.index(inputs['C2'])], 
             linestyle='-', linewidth=2.5, 
             label=f'Selected (C2={inputs["C2"]}, Pmax={inputs["Pmax"]} kN/m²)')
@@ -69,7 +98,7 @@ def create_graph_image(inputs, project_name, show_all_c2):
     if show_all_c2:
         for c2 in [val for val in c2_values if val != inputs['C2']]:
             R_values_alt = [calculate_rate_of_rise(inputs['Pmax'], inputs['D'], inputs['H_form'], T, inputs['C1'], c2) 
-                          for T in T_range]
+                            for T in T_range]
             ax.plot(T_range, R_values_alt, color=colors[c2_values.index(c2)], 
                     linestyle=line_styles[c2_values.index(c2)], linewidth=1.5, alpha=0.8,
                     label=f'C2={c2}')
@@ -78,7 +107,7 @@ def create_graph_image(inputs, project_name, show_all_c2):
     if show_all_c2:
         for c2 in [val for val in c2_values if val != inputs['C2']]:
             all_R.extend([calculate_rate_of_rise(inputs['Pmax'], inputs['D'], inputs['H_form'], T, inputs['C1'], c2) 
-                        for T in T_range])
+                          for T in T_range])
     
     max_R = np.nanmax(all_R) if not np.all(np.isnan(all_R)) else 10
     y_max = max_R * 1.2 if not np.isnan(max_R) else 10
@@ -90,6 +119,7 @@ def create_graph_image(inputs, project_name, show_all_c2):
     ax.legend(fontsize=10, framealpha=1)
     ax.set_ylim(0, y_max)
     
+    # Add text labels to the plot for selected temperatures
     for T in np.arange(inputs['T_min'], inputs['T_max'] + 1, 5):
         if T <= inputs['T_max']:
             R = calculate_rate_of_rise(inputs['Pmax'], inputs['D'], inputs['H_form'], T, inputs['C1'], inputs['C2'])
@@ -105,6 +135,9 @@ def create_graph_image(inputs, project_name, show_all_c2):
     return buf, max_R, y_max
 
 def build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph_buffer, logo_buffer):
+    """
+    Builds the list of elements for the PDF report.
+    """
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(name='TitleStyle', parent=styles['Title'], fontSize=14, spaceAfter=8, alignment=TA_CENTER)
     subtitle_style = ParagraphStyle(name='SubtitleStyle', parent=styles['Normal'], fontSize=10, spaceAfter=8, alignment=TA_CENTER)
@@ -131,7 +164,7 @@ def build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph
 
     elements = []
     
-    company_text = f"<b>{COMPANY_NAME}</b><br/>{COMPANY_ADDRESS}"
+    company_text = f"<b>{PROGRAM_INFO['company_name']}</b><br/>{PROGRAM_INFO['company_address']}"
     company_paragraph = Paragraph(company_text, normal_style)
     
     if logo_buffer:
@@ -146,7 +179,7 @@ def build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph
     elements.extend([
         header_table, 
         Spacer(1, 4*mm), 
-        Paragraph("Rise Rate Calculation Report to AS 3610.2:2023", title_style)
+        Paragraph(f"Rise Rate Calculation Report to {PROGRAM_INFO['program_name']}", title_style)
     ])
 
     project_details = f"Project Number: {project_number}<br/>Project Name: {project_name}<br/>Date: {datetime.now().strftime('%B %d, %Y')}"
@@ -191,13 +224,34 @@ def build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph
         graph_image = Paragraph("[Graph Placeholder]", normal_style)
     
     elements.append(graph_image)
+    
+    # New: Summary table of calculated rise rates
+    elements.extend([
+        Spacer(1, 4*mm),
+        Paragraph("Summary of Calculated Rise Rates", heading_style)
+    ])
+
+    summary_data = [
+        ["Temperature (°C)", "Rise Rate (m/hr)"]
+    ]
+    for T in np.arange(inputs['T_min'], inputs['T_max'] + 1, 5):
+        R = calculate_rate_of_rise(inputs['Pmax'], inputs['D'], inputs['H_form'], T, inputs['C1'], inputs['C2'])
+        summary_data.append([f"{T:.1f}", f"{R:.2f}"])
+
+    summary_table = Table(summary_data, colWidths=[90*mm, 90*mm])
+    summary_table.setStyle(table_style)
+    elements.append(summary_table)
+
     return elements
 
 def generate_pdf_report(inputs, max_R, y_max, project_number, project_name, graph_buffer, logo_buffer):
+    """
+    Generates the final PDF document.
+    """
     pdf_buffer = io.BytesIO()
     doc = SimpleDocTemplate(pdf_buffer, pagesize=A4, 
-                          leftMargin=15*mm, rightMargin=15*mm, 
-                          topMargin=15*mm, bottomMargin=15*mm)
+                            leftMargin=15*mm, rightMargin=15*mm, 
+                            topMargin=15*mm, bottomMargin=15*mm)
     
     elements = build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph_buffer, logo_buffer)
 
@@ -206,7 +260,7 @@ def generate_pdf_report(inputs, max_R, y_max, project_number, project_name, grap
         canvas.setFont('Helvetica', 10)
         page_num = canvas.getPageNumber()
         canvas.drawCentredString(doc.pagesize[0] / 2.0, 10 * mm, 
-                               f"{PROGRAM} {PROGRAM_VERSION} | tekhne © | Page {page_num}")
+                                 f"{PROGRAM_INFO['program_name']} {PROGRAM_INFO['version']} | tekhne © | Page {page_num}")
         canvas.restoreState()
 
     doc.build(elements, onFirstPage=footer, onLaterPages=footer)
@@ -214,12 +268,15 @@ def generate_pdf_report(inputs, max_R, y_max, project_number, project_name, grap
     return pdf_buffer
 
 def main():
+    """
+    Main Streamlit application function.
+    """
     st.set_page_config(page_title="Rise Rate Calculator - AS 3610.2:2023")
     
     st.markdown(
-        """
+        f"""
         <h1 style='font-size: 24px; margin-top: 0; margin-bottom: 10px;'>
-            Rise Rate Calculator to AS 3610.2:2023
+            {PROGRAM_INFO['program_name']}
         </h1>
         """,
         unsafe_allow_html=True
@@ -230,16 +287,20 @@ def main():
         project_name = st.text_input("Project Name", "Sample Project")
         
         inputs = {
-            'D': st.number_input("Wet Concrete Density (kN/m³)", min_value=0.0, max_value=30.0, value=25.0),
-            'T_min': st.number_input("Min Temperature (°C)", min_value=5.0, max_value=30.0, value=5.0),
-            'T_max': st.number_input("Max Temperature (°C)", min_value=5.0, max_value=30.0, value=30.0),
-            'H_concrete': st.number_input("Total Concrete Height (m)", min_value=0.0, max_value=50.0, value=3.0),
-            'H_form': st.number_input("Total Formwork Height (m)", min_value=0.0, max_value=50.0, value=3.3),
-            'C2': st.selectbox("C2 Coefficient (per AS 3610.2:2023)", 
-                              options=[0.3, 0.45, 0.6, 0.75], index=1),
-            'W': st.number_input("Plan Width (m)", min_value=0.0, max_value=100.0, value=2.0),
-            'L': st.number_input("Plan Length (m)", min_value=0.0, max_value=100.0, value=3.0),
-            'Pmax': st.number_input("Maximum Concrete Pressure (kN/m²)", min_value=0.0, value=60.0),
+            'D': st.number_input("Wet Concrete Density (kN/m³)", min_value=0.0, max_value=30.0, value=25.0, help="Density of the fresh concrete."),
+            'T_min': st.number_input("Min Temperature (°C)", min_value=5.0, max_value=30.0, value=5.0, help="Minimum fresh concrete temperature."),
+            'T_max': st.number_input("Max Temperature (°C)", min_value=5.0, max_value=30.0, value=30.0, help="Maximum fresh concrete temperature."),
+            'H_concrete': st.number_input("Total Concrete Height (m)", min_value=0.0, max_value=50.0, value=3.0, help="The total height of the concrete pour."),
+            'H_form': st.number_input("Total Formwork Height (m)", min_value=0.0, max_value=50.0, value=3.3, help="The total height of the formwork system."),
+            'C2': st.selectbox(
+                "C2 Coefficient (per AS 3610.2:2023)",
+                options=[0.3, 0.45, 0.6, 0.75],
+                index=1,
+                help="C2 accounts for concrete properties. Refer to AS 3610.2 Table 2.1 for values. 0.45 is a common default for normal concrete."
+            ),
+            'W': st.number_input("Plan Width (m)", min_value=0.0, max_value=100.0, value=2.0, help="The width of the formwork in plan."),
+            'L': st.number_input("Plan Length (m)", min_value=0.0, max_value=100.0, value=3.0, help="The length of the formwork in plan."),
+            'Pmax': st.number_input("Maximum Concrete Pressure (kN/m²)", min_value=0.0, value=60.0, help="The maximum design pressure the formwork can withstand.")
         }
         
         show_all_c2 = st.checkbox("Show comparison lines for all C2 coefficients", value=False)
@@ -248,17 +309,17 @@ def main():
     if submitted:
         inputs['C1'] = 1.5 if inputs['W'] < 2.0 and inputs['L'] < 2.0 else 1.0
         inputs['structure_type'] = "column" if inputs['C1'] == 1.5 else "wall"
-        st.write(f"Assumed structure type: {inputs['structure_type']} (C1 = {inputs['C1']})")
+        st.info(f"The program has assumed a structure type of **{inputs['structure_type']}** (C1 = **{inputs['C1']}**).")
 
         # Validation
         if not (5 <= inputs['T_min'] <= inputs['T_max'] <= 30):
-            st.error("Temperatures must be between 5 and 30°C, with T_min <= T_max")
+            st.error("Temperatures must be between 5 and 30°C, with T_min <= T_max.")
             return
         if not (0 < inputs['H_concrete'] <= inputs['H_form'] <= 50):
-            st.error("Heights must be positive, with concrete height <= formwork height <= 50 m")
+            st.error("Heights must be positive, with concrete height <= formwork height <= 50 m.")
             return
         if not (0 < inputs['Pmax'] <= inputs['D'] * inputs['H_form']):
-            st.error(f"Pmax must be between 0 and hydrostatic limit ({inputs['D'] * inputs['H_form']:.2f} kN/m²)")
+            st.error(f"Pmax must be between 0 and the hydrostatic limit ({inputs['D'] * inputs['H_form']:.2f} kN/m²).")
             return
 
         try:
@@ -282,7 +343,8 @@ def main():
                     mime="application/pdf"
                 )
                 
-                st.success(f"Maximum calculated rate of rise: {max_R:.2f} m/hr")
+                st.success(f"Maximum calculated rate of rise for your selected parameters is: **{max_R:.2f} m/hr**")
+                st.info("Need to run a new calculation or have a question about the code? Let me know!")
                 
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
