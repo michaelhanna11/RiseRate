@@ -292,6 +292,11 @@ def main():
             'T_max': st.number_input("Max Temperature (°C)", min_value=5.0, max_value=30.0, value=30.0, help="Maximum fresh concrete temperature."),
             'H_concrete': st.number_input("Total Concrete Height (m)", min_value=0.0, max_value=50.0, value=3.0, help="The total height of the concrete pour."),
             'H_form': st.number_input("Total Formwork Height (m)", min_value=0.0, max_value=50.0, value=3.3, help="The total height of the formwork system."),
+            'C1': st.selectbox(
+                "C1 Factor", 
+                options=[1.0, 1.5],
+                help="C1 = 1.0 for walls. C1 = 1.5 for columns (all horizontal dimensions < 2.0 m)."
+            ),
             'C2': st.selectbox(
                 "C2 Coefficient (per AS 3610.2:2023)",
                 options=[0.3, 0.45, 0.6, 0.75],
@@ -307,11 +312,9 @@ def main():
         submitted = st.form_submit_button("Calculate")
 
     if submitted:
-        # C1 Factor Correction
-        # This logic ensures C1 = 1.5 only if *both* dimensions are less than 2.0 m
-        inputs['C1'] = 1.5 if inputs['W'] < 2.0 and inputs['L'] < 2.0 else 1.0
+        # The logic to determine C1 based on dimensions has been removed.
+        # It's now explicitly set by the user's dropdown selection.
         inputs['structure_type'] = "column" if inputs['C1'] == 1.5 else "wall"
-        st.info(f"The program has assumed a structure type of **{inputs['structure_type']}** (C1 = **{inputs['C1']}**).")
 
         # Validation
         if not (5 <= inputs['T_min'] <= inputs['T_max'] <= 30):
