@@ -17,7 +17,7 @@ import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 # Program metadata
-PROGRAM_VERSION = "1.0 - 2025"
+PROGRAM_VERSION = "2.0 - 2025"
 PROGRAM = "Rise Rate Calculator to AS 3610.2:2023"
 COMPANY_NAME = "tekhne Consulting Engineers"
 COMPANY_ADDRESS = "   "  # Update with actual address if needed
@@ -246,7 +246,7 @@ def main():
         submitted = st.form_submit_button("Calculate")
 
     if submitted:
-        inputs['C1'] = 1.5 if inputs['W'] <= 1.0 or inputs['L'] <= 1.0 else 1.0
+        inputs['C1'] = 1.5 if inputs['W'] <= 2.0 and inputs['L'] <= 2.0 else 1.0
         inputs['structure_type'] = "column" if inputs['C1'] == 1.5 else "wall"
         st.write(f"Assumed structure type: {inputs['structure_type']} (C1 = {inputs['C1']})")
 
