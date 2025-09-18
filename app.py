@@ -30,39 +30,24 @@ FALLBACK_LOGO_URL = "https://onedrive.live.com/download?cid=A48CC9068E3FACE0&res
 def calculate_rate_of_rise(Pmax, D, H_form, T, C1, C2):
     """
     Calculates the rate of rise (R) based on AS 3610.2:2023, Annex B.
-    Handles both hydrostatic and general pressure equations.
     """
     K = (36 / (T + 16))**2
     
-    # Check if the pressure is within the hydrostatic range
-    # Pmax <= P_hydro_limit where P_hydro_limit = D * C1 * sqrt(10 m/hr)
-    # R_max is 10 m/hr per the standard
-    P_hydro_limit = D * C1 * np.sqrt(10.0)
-    
-    if Pmax <= P_hydro_limit:
-        def hydrostatic_equation(R):
-            return D * C1 * np.sqrt(R) - Pmax
-        R_hydro, _, ier, _ = fsolve(hydrostatic_equation, 1.0, full_output=True)
-        if ier == 1 and R_hydro[0] > 0.2:
-            return R_hydro[0]
-        else:
-            # Fallback to general equation if fsolve fails or result is too small
-            pass
-            
-    # General pressure equation
     def pressure_equation(R):
-        if R <= 0:
-            return 1e6 # Return a large number to steer fsolve away from invalid solutions
-        term1 = C1 * np.sqrt(R)
-        if H_form <= term1:
-            return D * H_form - Pmax
-        return D * (term1 + C2 * K * np.sqrt(H_form - term1)) - Pmax
+        if R <= 0 or (H_form - C1 * np.sqrt(R)) < 0:
+            return 1e9
+        return D * (C1 * np.sqrt(R) + C2 * K * np.sqrt(H_form - C1 * np.sqrt(R))) - Pmax
     
-    R_guess = max(0.1, (Pmax / D - C2 * K * np.sqrt(H_form)) / C1)**2 if (Pmax / D - C2 * K * np.sqrt(H_form)) > 0 else 0.1
-    R_solution, _, ier, _ = fsolve(pressure_equation, R_guess, xtol=1e-8, maxfev=2000, full_output=True)
+    R_guess = max(0.2, (Pmax / D - C2 * K * np.sqrt(H_form)) / C1)**2 if (Pmax / D - C2 * K * np.sqrt(H_form)) > 0 else 0.2
+    R_solution, info, ier, msg = fsolve(pressure_equation, R_guess, full_output=True)
     
-    result = R_solution[0] if 0 < R_solution[0] <= 10 else float('nan')
-    return 0.0 if result < 0.2 else result
+    if ier == 1:
+        result = R_solution[0]
+        final_R = np.clip(result, 0.2, 10.0)
+        return final_R
+    else:
+        return float('nan')
+
 
 def get_company_logo():
     """
@@ -292,6 +277,11 @@ def main():
             'T_max': st.number_input("Max Temperature (°C)", min_value=5.0, max_value=30.0, value=30.0, help="Maximum fresh concrete temperature."),
             'H_concrete': st.number_input("Total Concrete Height (m)", min_value=0.0, max_value=50.0, value=3.0, help="The total height of the concrete pour."),
             'H_form': st.number_input("Total Formwork Height (m)", min_value=0.0, max_value=50.0, value=3.3, help="The total height of the formwork system."),
+            'C1': st.selectbox(
+                "C1 Factor", 
+                options=[1.0, 1.5],
+                help="C1 = 1.0 for walls. C1 = 1.5 for columns (all horizontal dimensions < 2.0 m)."
+            ),
             'C2': st.selectbox(
                 "C2 Coefficient (per AS 3610.2:2023)",
                 options=[0.3, 0.45, 0.6, 0.75],
@@ -307,11 +297,9 @@ def main():
         submitted = st.form_submit_button("Calculate")
 
     if submitted:
-        # C1 Factor Correction
-        # This logic ensures C1 = 1.5 only if *both* dimensions are less than 2.0 m
-        inputs['C1'] = 1.5 if inputs['W'] < 2.0 and inputs['L'] < 2.0 else 1.0
+        # The logic to determine C1 based on dimensions has been removed.
+        # It's now explicitly set by the user's dropdown selection.
         inputs['structure_type'] = "column" if inputs['C1'] == 1.5 else "wall"
-        st.info(f"The program has assumed a structure type of **{inputs['structure_type']}** (C1 = **{inputs['C1']}**).")
 
         # Validation
         if not (5 <= inputs['T_min'] <= inputs['T_max'] <= 30):
