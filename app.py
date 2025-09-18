@@ -98,7 +98,7 @@ def create_graph_image(inputs, project_name, show_all_c2):
     
     ax.set_xlabel('Temperature (°C)', fontsize=12)
     ax.set_ylabel('Rate of Rise (m/hr)', fontsize=12)
-    ax.set_title(f'Rate of Rise vs Temperature - {project_name}', fontsize=14, pad=20)
+    ax.set_title(f'Rate of Rise vs Temperature - {project_name} - {task_name}', fontsize=14, pad=20)
     ax.grid(True, linestyle='--', alpha=0.6)
     ax.legend(fontsize=10, framealpha=1)
     ax.set_ylim(0, y_max)
@@ -176,7 +176,7 @@ def build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph
         Paragraph(f"Rise Rate Calculation Report to {PROGRAM_INFO['program_name']}", title_style)
     ])
 
-    project_details = f"Project Number: {project_number}<br/>Project Name: {project_name}<br/>Date: {datetime.now().strftime('%B %d, %Y')}"
+    project_details = f"Project Number: {project_number}<br/>Project Name: {project_name} - {task_name}<br/>Date: {datetime.now().strftime('%B %d, %Y')}"
     elements.extend([
         Paragraph(project_details, subtitle_style), 
         Spacer(1, 2*mm), 
@@ -265,7 +265,7 @@ def main():
     """
     Main Streamlit application function.
     """
-    st.set_page_config(page_title="Rise Rate Calculator - AS 3610.2:2023")
+    st.set_page_config(page_title="Rise Rate Calculator - AS 3610.2:2023 | CIRIA Report 108")
     
     st.markdown(
         f"""
@@ -277,8 +277,9 @@ def main():
     )
     
     with st.form("input_form"):
-        project_number = st.text_input("Project Number", "PRJ-001")
-        project_name = st.text_input("Project Name", "Sample Project")
+        project_number = st.text_input("Project Number", "TK-2025001")
+        project_name = st.text_input("Project Name", "Project")
+        task_name = st.text_input("Area")
         
         inputs = {
             'D': st.number_input("Wet Concrete Density (kN/m³)", min_value=0.0, max_value=30.0, value=25.0, help="Density of the fresh concrete."),
@@ -338,7 +339,7 @@ def main():
                 )
                 
                 st.success(f"Maximum calculated rate of rise for your selected parameters is: **{max_R:.2f} m/hr**")
-                st.info("Need to run a new calculation or have a question about the code? Let me know!")
+                st.info("Developed by Michael Hanna on behald of Tekhne Consulting Engineers")
                 
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
