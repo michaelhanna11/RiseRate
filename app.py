@@ -307,6 +307,8 @@ def main():
         submitted = st.form_submit_button("Calculate")
 
     if submitted:
+        # C1 Factor Correction
+        # This logic ensures C1 = 1.5 only if *both* dimensions are less than 2.0 m
         inputs['C1'] = 1.5 if inputs['W'] < 2.0 and inputs['L'] < 2.0 else 1.0
         inputs['structure_type'] = "column" if inputs['C1'] == 1.5 else "wall"
         st.info(f"The program has assumed a structure type of **{inputs['structure_type']}** (C1 = **{inputs['C1']}**).")
