@@ -72,11 +72,11 @@ def create_graph_image(inputs, project_name, show_all_c2):
     colors = ['#00A859', '#FF5733', '#3498DB', '#9B59B6']
     c2_values = [0.3, 0.45, 0.6, 0.75]
     
-    # Plot selected C2 with a thicker solid line and circle markers
+    # Plot selected C2 with a thicker solid line
     R_values = [calculate_rate_of_rise(inputs['Pmax'], inputs['D'], inputs['H_form'], T, inputs['C1'], inputs['C2']) 
                 for T in T_range]
     ax.plot(T_range, R_values, color=colors[c2_values.index(inputs['C2'])], 
-            linestyle='-', linewidth=3.0, marker='o', 
+            linestyle='-', linewidth=3.0, 
             label=f'Selected (C2={inputs["C2"]}, Pmax={inputs["Pmax"]} kN/m²)')
     
     if show_all_c2:
@@ -84,7 +84,7 @@ def create_graph_image(inputs, project_name, show_all_c2):
             R_values_alt = [calculate_rate_of_rise(inputs['Pmax'], inputs['D'], inputs['H_form'], T, inputs['C1'], c2) 
                             for T in T_range]
             ax.plot(T_range, R_values_alt, color=colors[c2_values.index(c2)], 
-                    linestyle='-', linewidth=2.0, marker='s', alpha=0.8,
+                    linestyle='-', linewidth=2.0, alpha=0.8,
                     label=f'C2={c2}')
 
     all_R = R_values.copy()
@@ -103,13 +103,23 @@ def create_graph_image(inputs, project_name, show_all_c2):
     ax.legend(fontsize=10, framealpha=1)
     ax.set_ylim(0, y_max)
     
-    # Add text labels to the plot for selected temperatures
-    for T in np.arange(inputs['T_min'], inputs['T_max'] + 1, 5):
-        if T <= inputs['T_max']:
-            R = calculate_rate_of_rise(inputs['Pmax'], inputs['D'], inputs['H_form'], T, inputs['C1'], inputs['C2'])
-            if not np.isnan(R):
-                ax.text(T, R + max_R * 0.02, f'{R:.2f}', fontsize=9, ha='center', va='bottom', 
-                        bbox=dict(facecolor='white', alpha=0.8, edgecolor='none', pad=1))
+    # Add text labels and markers for all plotted lines at fixed temperature intervals
+    plotted_c2_values = [inputs['C2']]
+    if show_all_c2:
+        plotted_c2_values.extend([val for val in c2_values if val != inputs['C2']])
+
+    for c2 in plotted_c2_values:
+        for T in np.arange(inputs['T_min'], inputs['T_max'] + 1, 5):
+            if T <= inputs['T_max']:
+                R = calculate_rate_of_rise(inputs['Pmax'], inputs['D'], inputs['H_form'], T, inputs['C1'], c2)
+                if not np.isnan(R):
+                    # Add data point marker
+                    marker_style = 'o' if c2 == inputs['C2'] else 's'
+                    marker_color = colors[c2_values.index(c2)]
+                    ax.plot(T, R, marker=marker_style, color=marker_color, markersize=8)
+                    # Add text label
+                    ax.text(T, R + max_R * 0.02, f'{R:.2f}', fontsize=9, ha='center', va='bottom', 
+                            bbox=dict(facecolor='white', alpha=0.8, edgecolor='none', pad=1))
 
     plt.tight_layout()
     buf = io.BytesIO()
@@ -276,11 +286,6 @@ def main():
             'T_max': st.number_input("Max Temperature (°C)", min_value=5.0, max_value=30.0, value=30.0, help="Maximum fresh concrete temperature."),
             'H_concrete': st.number_input("Total Concrete Height (m)", min_value=0.0, max_value=50.0, value=3.0, help="The total height of the concrete pour."),
             'H_form': st.number_input("Total Formwork Height (m)", min_value=0.0, max_value=50.0, value=3.3, help="The total height of the formwork system."),
-            'C1': st.selectbox(
-                "C1 Factor", 
-                options=[1.0, 1.5],
-                help="C1 = 1.0 for walls. C1 = 1.5 for columns (all horizontal dimensions < 2.0 m)."
-            ),
             'C2': st.selectbox(
                 "C2 Coefficient (per AS 3610.2:2023)",
                 options=[0.3, 0.45, 0.6, 0.75],
@@ -296,7 +301,9 @@ def main():
         submitted = st.form_submit_button("Calculate")
 
     if submitted:
+        inputs['C1'] = 1.5 if inputs['W'] < 2.0 and inputs['L'] < 2.0 else 1.0
         inputs['structure_type'] = "column" if inputs['C1'] == 1.5 else "wall"
+        st.info(f"The program has assumed a structure type of **{inputs['structure_type']}** (C1 = **{inputs['C1']}**).")
 
         # Validation
         if not (5 <= inputs['T_min'] <= inputs['T_max'] <= 30):
