@@ -19,7 +19,7 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 # Program metadata
 PROGRAM_INFO = {
     "version": "2.0 - 2025",
-    "program_name": "Rise Rate Calculator to AS 3610.2:2023",
+    "program_name": "Rise Rate Calculation to AS 3610.2:2023",
     "company_name": "tekhne Consulting Engineers",
     "company_address": "    "
 }
