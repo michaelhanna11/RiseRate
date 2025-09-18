@@ -71,13 +71,12 @@ def create_graph_image(inputs, project_name, show_all_c2):
     
     colors = ['#00A859', '#FF5733', '#3498DB', '#9B59B6']
     c2_values = [0.3, 0.45, 0.6, 0.75]
-    line_styles = ['-', '--', ':', '-.']
     
-    # Plot selected C2
+    # Plot selected C2 with a thicker solid line and circle markers
     R_values = [calculate_rate_of_rise(inputs['Pmax'], inputs['D'], inputs['H_form'], T, inputs['C1'], inputs['C2']) 
                 for T in T_range]
     ax.plot(T_range, R_values, color=colors[c2_values.index(inputs['C2'])], 
-            linestyle='-', linewidth=2.5, 
+            linestyle='-', linewidth=3.0, marker='o', 
             label=f'Selected (C2={inputs["C2"]}, Pmax={inputs["Pmax"]} kN/m²)')
     
     if show_all_c2:
@@ -85,7 +84,7 @@ def create_graph_image(inputs, project_name, show_all_c2):
             R_values_alt = [calculate_rate_of_rise(inputs['Pmax'], inputs['D'], inputs['H_form'], T, inputs['C1'], c2) 
                             for T in T_range]
             ax.plot(T_range, R_values_alt, color=colors[c2_values.index(c2)], 
-                    linestyle=line_styles[c2_values.index(c2)], linewidth=1.5, alpha=0.8,
+                    linestyle='-', linewidth=2.0, marker='s', alpha=0.8,
                     label=f'C2={c2}')
 
     all_R = R_values.copy()
@@ -297,8 +296,6 @@ def main():
         submitted = st.form_submit_button("Calculate")
 
     if submitted:
-        # The logic to determine C1 based on dimensions has been removed.
-        # It's now explicitly set by the user's dropdown selection.
         inputs['structure_type'] = "column" if inputs['C1'] == 1.5 else "wall"
 
         # Validation
