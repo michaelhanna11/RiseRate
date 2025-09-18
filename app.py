@@ -336,6 +336,13 @@ def main():
                     file_name=f"Rise_Rate_Calculation_Report_{project_name.replace(' ', '_')}.pdf",
                     mime="application/pdf"
                 )
+
+                st.download_button(
+                    label="Download Graph as JPG",
+                    data=graph_buffer,
+                    file_name=f"Rise_Rate_Graph_{project_name.replace(' ', '_')}.jpg",
+                    mime="image/jpeg"
+                )
                 
                 st.success(f"Maximum calculated rate of rise for your selected parameters is: **{max_R:.2f} m/hr**")
                 st.info("Developed by Michael Hanna on behald of Tekhne Consulting Engineers")
