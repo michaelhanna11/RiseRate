@@ -173,7 +173,7 @@ def build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph
     elements.extend([
         header_table, 
         Spacer(1, 4*mm), 
-        Paragraph(f"Rise Rate Calculation Report to {PROGRAM_INFO['program_name']}", title_style)
+        Paragraph(f"Reported {PROGRAM_INFO['program_name']}", title_style)
     ])
 
     project_details = f"Project Number: {project_number}<br/>Project Name: {project_name}<br/>Date: {datetime.now().strftime('%B %d, %Y')}"
