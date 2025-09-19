@@ -4,7 +4,7 @@ from scipy.optimize import fsolve
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import mm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage # Renamed to avoid conflict
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
 import requests
@@ -14,14 +14,14 @@ import streamlit as st
 import warnings
 
 # Suppress runtime warnings
-warnings.filterwarnings("ignore", category=RuntimeWarning)
+warnings.filter_warnings("ignore", category=RuntimeWarning)
 
 # Program metadata
 PROGRAM_INFO = {
     "version": "2.0 - 2025",
     "program_name": "Rise Rate Calculation to AS 3610.2:2023",
     "company_name": "tekhne Consulting Engineers",
-    "company_address": "Level 3, 55 Pyrmont Bridge Rd, Pyrmont, NSW 2009"
+    "company_address": "8/104-110 Mount St, North Sydney, NSW 2060"
 }
 LOGO_URL = "https://drive.google.com/uc?export=download&id=1VebdT2loVGX57noP9t2GgQhwCNn8AA3h"
 FALLBACK_LOGO_URL = "https://onedrive.live.com/download?cid=A48CC9068E3FACE0&resid=A48CC9068E3FACE0%21s252b6fb7fcd04f53968b2a09114d33ed"
@@ -64,6 +64,7 @@ def get_company_logo():
 def create_graph_image(inputs, project_name, show_all_c2):
     """
     Generates a graph of Rise Rate vs. Temperature.
+    Includes the company logo on the graph itself.
     """
     T_range = np.linspace(inputs['T_min'], inputs['T_max'], 50)
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -120,6 +121,21 @@ def create_graph_image(inputs, project_name, show_all_c2):
                     ax.text(T, R + max_R * 0.02, f'{R:.2f}', fontsize=9, ha='center', va='bottom', 
                             bbox=dict(facecolor='white', alpha=0.8, edgecolor='none', pad=1))
 
+    # --- Add company logo to the graph ---
+    logo_data = get_company_logo()
+    if logo_data:
+        logo_img = plt.imread(logo_data)
+        # Position the logo (adjust x, y, zoom for desired placement and size)
+        # x, y are normalized coordinates (0 to 1) for the bottom-left corner
+        # zoom controls the size of the logo.
+        # We'll place it in the bottom right, slightly inset.
+        fig.figimage(logo_img, xo=fig.bbox.width - (logo_img.shape[1] * 0.15) - 50,
+                     yo=50, origin='upper', zorder=10, alpha=0.7,
+                     resize=True, # Added resize to allow control via figure fraction or dpi
+                     interpolation='high',
+                     cmap='Greys') # Use Greys colormap for potential monochrome logos
+
+
     plt.tight_layout()
     buf = io.BytesIO()
     fig.savefig(buf, format='png', dpi=600, bbox_inches='tight')
@@ -159,7 +175,7 @@ def build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph
     
     # Updated Header Table
     company_info = [
-        [Paragraph("<b>tekhne Consulting Engineers</b>", styles['Normal']), Image(logo_buffer, width=50*mm, height=20*mm) if logo_buffer else Paragraph("[Logo Placeholder]", styles['Normal'])],
+        [Paragraph("<b>tekhne Consulting Engineers</b>", styles['Normal']), RLImage(logo_buffer, width=50*mm, height=20*mm) if logo_buffer else Paragraph("[Logo Placeholder]", styles['Normal'])], # Using RLImage here
         [Paragraph(PROGRAM_INFO['company_address'], styles['Normal']), ""]
     ]
     header_table = Table(company_info, colWidths=[120*mm, 60*mm])
@@ -208,29 +224,12 @@ def build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph
     ])
     
     if graph_buffer:
-        graph_image = Image(graph_buffer, width=160*mm, height=120*mm)
+        graph_image = RLImage(graph_buffer, width=160*mm, height=120*mm) # Using RLImage here
     else:
         graph_image = Paragraph("[Graph Placeholder]", normal_style)
     
     elements.append(graph_image)
     
-    # New: Summary table of calculated rise rates
-    elements.extend([
-        Spacer(1, 4*mm),
-        Paragraph("Summary of Calculated Rise Rates", heading_style)
-    ])
-
-    summary_data = [
-        ["Temperature (°C)", "Rise Rate (m/hr)"]
-    ]
-    for T in np.arange(inputs['T_min'], inputs['T_max'] + 1, 5):
-        R = calculate_rate_of_rise(inputs['Pmax'], inputs['D'], inputs['H_form'], T, inputs['C1'], inputs['C2'])
-        summary_data.append([f"{T:.1f}", f"{R:.2f}"])
-
-    summary_table = Table(summary_data, colWidths=[90*mm, 90*mm])
-    summary_table.setStyle(table_style_main)
-    elements.append(summary_table)
-
     return elements
 
 def generate_pdf_report(inputs, max_R, y_max, project_number, project_name, graph_buffer, logo_buffer):
@@ -318,7 +317,7 @@ def main():
             # Display graph in Streamlit
             st.image(graph_buffer)
             
-            # Get company logo
+            # Get company logo (re-fetch as it's used in PDF build_pdf_elements too, though graph_buffer now has it)
             logo_buffer = get_company_logo()
             
             # Generate PDF
@@ -333,9 +332,9 @@ def main():
                 )
 
                 st.download_button(
-                    label="Download Graph as PNG", # Change from JPG to PNG
+                    label="Download Graph as PNG",
                     data=graph_buffer,
-                    file_name=f"Rise_Rate_Graph_{project_name.replace(' ', '_')}.png", # Change file extension
+                    file_name=f"Rise_Rate_Graph_{project_name.replace(' ', '_')}.png",
                     mime="image/png"
                 )
                 
