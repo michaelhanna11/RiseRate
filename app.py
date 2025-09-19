@@ -121,15 +121,28 @@ def create_graph_image(inputs, project_name, show_all_c2):
                     ax.text(T, R + max_R * 0.02, f'{R:.2f}', fontsize=9, ha='center', va='bottom', 
                             bbox=dict(facecolor='white', alpha=0.8, edgecolor='none', pad=1))
 
-    # --- Add company logo to the graph (new, fixed position) ---
+    # --- Add company logo to the graph (new, fixed position and smaller size) ---
     logo_data = get_company_logo()
     if logo_data:
         logo_img = plt.imread(logo_data)
+        # Calculate appropriate size based on image shape and desired scale
+        # Let's aim for the logo to be about 10% of the figure width, for example
+        logo_width_in_pixels = fig.bbox.width * 0.10 # 10% of figure width
+        logo_height_in_pixels = logo_img.shape[0] * (logo_width_in_pixels / logo_img.shape[1]) # Maintain aspect ratio
+
         # Position the logo in the lower right corner, just above the horizontal axis.
-        # The coordinates are normalized to the figure size (0 to 1).
-        fig.figimage(logo_img, xo=fig.bbox.width - (logo_img.shape[1] * 0.15) - 50,
-                     yo=50, origin='upper', zorder=10, alpha=0.7,
+        # xo, yo are offsets from the figure's bottom-left corner in pixels.
+        # We need to subtract the logo's width from the figure's width for right alignment.
+        # yo should be slightly above the x-axis, e.g., 20 pixels.
+        fig.figimage(logo_img,
+                     xo=fig.bbox.width - logo_width_in_pixels - 20, # 20 pixels padding from right edge
+                     yo=20, # 20 pixels padding from bottom edge (above x-axis)
+                     origin='upper', # 'upper' means yo is for the top of the image
+                     zorder=10,
+                     alpha=0.7,
                      resize=True,
+                     # We pass the desired size directly to resize to control it precisely
+                     size=(logo_width_in_pixels, logo_height_in_pixels), 
                      interpolation='antialiased')
 
     plt.tight_layout()
@@ -189,10 +202,10 @@ def build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph
 
     elements.extend([
         header_table,
-        Spacer(1, 2*mm), # Reduced spacer
+        Spacer(1, 2*mm),
         Paragraph(f"Report: {PROGRAM_INFO['program_name']}", title_style),
         Paragraph(f"Project Number: {project_number} | Project Name: {project_name}<br/>Date: {datetime.now().strftime('%B %d, %Y')}", subtitle_style),
-        Spacer(1, 2*mm), # Reduced spacer
+        Spacer(1, 2*mm),
         Paragraph("Input Parameters", heading_style)
     ])
 
@@ -215,12 +228,12 @@ def build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph
     
     elements.extend([
         input_table,
-        Spacer(1, 2*mm), # Reduced spacer
+        Spacer(1, 2*mm),
         Paragraph("Rate of Rise vs Temperature Graph", heading_style)
     ])
     
     if graph_buffer:
-        graph_image = RLImage(graph_buffer, width=140*mm, height=105*mm) # Reduced graph size
+        graph_image = RLImage(graph_buffer, width=150*mm, height=90*mm)
     else:
         graph_image = Paragraph("[Graph Placeholder]", normal_style)
     
@@ -235,7 +248,7 @@ def generate_pdf_report(inputs, max_R, y_max, project_number, project_name, grap
     pdf_buffer = io.BytesIO()
     doc = SimpleDocTemplate(pdf_buffer, pagesize=A4, 
                             leftMargin=15*mm, rightMargin=15*mm, 
-                            topMargin=10*mm, bottomMargin=10*mm) # Reduced top/bottom margins
+                            topMargin=10*mm, bottomMargin=10*mm)
     
     elements = build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph_buffer, logo_buffer)
 
