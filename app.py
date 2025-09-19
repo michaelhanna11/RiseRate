@@ -21,7 +21,7 @@ PROGRAM_INFO = {
     "version": "2.0 - 2025",
     "program_name": "Rise Rate Calculation to AS 3610.2:2023",
     "company_name": "tekhne Consulting Engineers",
-    "company_address": "8/104-110 Mount St, North Sydney, NSW 2060"
+    "company_address": "Level 3, 55 Pyrmont Bridge Rd, Pyrmont, NSW 2009"
 }
 LOGO_URL = "https://drive.google.com/uc?export=download&id=1VebdT2loVGX57noP9t2GgQhwCNn8AA3h"
 FALLBACK_LOGO_URL = "https://onedrive.live.com/download?cid=A48CC9068E3FACE0&resid=A48CC9068E3FACE0%21s252b6fb7fcd04f53968b2a09114d33ed"
