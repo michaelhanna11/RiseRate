@@ -12,6 +12,7 @@ import io
 from datetime import datetime
 import streamlit as st
 import warnings
+from PIL import Image as PilImage # Added Pillow import
 
 # Suppress runtime warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -121,22 +122,28 @@ def create_graph_image(inputs, project_name, show_all_c2):
                     ax.text(T, R + max_R * 0.02, f'{R:.2f}', fontsize=9, ha='center', va='bottom', 
                             bbox=dict(facecolor='white', alpha=0.8, edgecolor='none', pad=1))
 
-    # --- Corrected code for logo placement and size ---
+    # --- Corrected code for logo placement and size using PIL ---
     logo_data = get_company_logo()
     if logo_data:
-        logo_img = plt.imread(logo_data)
-        # We will use 'zoom' to control the size of the logo.
-        # A smaller zoom value means a smaller image.
-        # We'll also use relative coordinates (e.g., 0.8, 0.1) for a more robust position.
-        fig.figimage(logo_img,
-                     # Position based on fractions of the figure size (0 to 1)
-                     xo=fig.get_size_inches()[0] * fig.dpi * 0.80,  # 80% from left
-                     yo=fig.get_size_inches()[1] * fig.dpi * 0.05,  # 5% from bottom
-                     origin='lower',  # 'lower' means yo is for the bottom of the image
+        # Load and resize the image using PIL
+        pil_img = PilImage.open(logo_data)
+        new_width = 100 # Desired width in pixels
+        aspect_ratio = pil_img.height / pil_img.width
+        new_height = int(new_width * aspect_ratio)
+        resized_img = pil_img.resize((new_width, new_height), PilImage.Resampling.LANCZOS)
+        
+        # Convert the resized image back to a format matplotlib can use
+        resized_img_bytes = io.BytesIO()
+        resized_img.save(resized_img_bytes, format='PNG')
+        resized_img_bytes.seek(0)
+        
+        # Use figimage with the resized image data
+        fig.figimage(plt.imread(resized_img_bytes),
+                     xo=fig.bbox.width - new_width - 20,  # 20 pixels padding from right edge
+                     yo=20,  # 20 pixels padding from bottom edge
+                     origin='upper',
                      zorder=10,
-                     alpha=0.7,
-                     zoom=0.15, # Use a small zoom value to make the logo smaller
-                     interpolation='antialiased')
+                     alpha=0.7)
 
     plt.tight_layout()
     buf = io.BytesIO()
