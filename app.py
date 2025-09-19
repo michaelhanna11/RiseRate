@@ -4,7 +4,7 @@ from scipy.optimize import fsolve
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import mm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage # Renamed to avoid conflict
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
 import requests
@@ -13,8 +13,8 @@ from datetime import datetime
 import streamlit as st
 import warnings
 
-# Suppress runtime warnings
-warnings.filter_warnings("ignore", category=RuntimeWarning)
+# Corrected function name to filterwarnings
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 # Program metadata
 PROGRAM_INFO = {
@@ -131,10 +131,9 @@ def create_graph_image(inputs, project_name, show_all_c2):
         # We'll place it in the bottom right, slightly inset.
         fig.figimage(logo_img, xo=fig.bbox.width - (logo_img.shape[1] * 0.15) - 50,
                      yo=50, origin='upper', zorder=10, alpha=0.7,
-                     resize=True, # Added resize to allow control via figure fraction or dpi
+                     resize=True,
                      interpolation='high',
-                     cmap='Greys') # Use Greys colormap for potential monochrome logos
-
+                     cmap='Greys')
 
     plt.tight_layout()
     buf = io.BytesIO()
@@ -175,7 +174,7 @@ def build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph
     
     # Updated Header Table
     company_info = [
-        [Paragraph("<b>tekhne Consulting Engineers</b>", styles['Normal']), RLImage(logo_buffer, width=50*mm, height=20*mm) if logo_buffer else Paragraph("[Logo Placeholder]", styles['Normal'])], # Using RLImage here
+        [Paragraph("<b>tekhne Consulting Engineers</b>", styles['Normal']), RLImage(logo_buffer, width=50*mm, height=20*mm) if logo_buffer else Paragraph("[Logo Placeholder]", styles['Normal'])],
         [Paragraph(PROGRAM_INFO['company_address'], styles['Normal']), ""]
     ]
     header_table = Table(company_info, colWidths=[120*mm, 60*mm])
@@ -224,7 +223,7 @@ def build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph
     ])
     
     if graph_buffer:
-        graph_image = RLImage(graph_buffer, width=160*mm, height=120*mm) # Using RLImage here
+        graph_image = RLImage(graph_buffer, width=160*mm, height=120*mm)
     else:
         graph_image = Paragraph("[Graph Placeholder]", normal_style)
     
