@@ -121,28 +121,21 @@ def create_graph_image(inputs, project_name, show_all_c2):
                     ax.text(T, R + max_R * 0.02, f'{R:.2f}', fontsize=9, ha='center', va='bottom', 
                             bbox=dict(facecolor='white', alpha=0.8, edgecolor='none', pad=1))
 
-    # --- Add company logo to the graph (new, fixed position and smaller size) ---
+    # --- Corrected code for logo placement and size ---
     logo_data = get_company_logo()
     if logo_data:
         logo_img = plt.imread(logo_data)
-        # Calculate appropriate size based on image shape and desired scale
-        # Let's aim for the logo to be about 10% of the figure width, for example
-        logo_width_in_pixels = fig.bbox.width * 0.10 # 10% of figure width
-        logo_height_in_pixels = logo_img.shape[0] * (logo_width_in_pixels / logo_img.shape[1]) # Maintain aspect ratio
-
-        # Position the logo in the lower right corner, just above the horizontal axis.
-        # xo, yo are offsets from the figure's bottom-left corner in pixels.
-        # We need to subtract the logo's width from the figure's width for right alignment.
-        # yo should be slightly above the x-axis, e.g., 20 pixels.
+        # We will use 'zoom' to control the size of the logo.
+        # A smaller zoom value means a smaller image.
+        # We'll also use relative coordinates (e.g., 0.8, 0.1) for a more robust position.
         fig.figimage(logo_img,
-                     xo=fig.bbox.width - logo_width_in_pixels - 20, # 20 pixels padding from right edge
-                     yo=20, # 20 pixels padding from bottom edge (above x-axis)
-                     origin='upper', # 'upper' means yo is for the top of the image
+                     # Position based on fractions of the figure size (0 to 1)
+                     xo=fig.get_size_inches()[0] * fig.dpi * 0.80,  # 80% from left
+                     yo=fig.get_size_inches()[1] * fig.dpi * 0.05,  # 5% from bottom
+                     origin='lower',  # 'lower' means yo is for the bottom of the image
                      zorder=10,
                      alpha=0.7,
-                     resize=True,
-                     # We pass the desired size directly to resize to control it precisely
-                     size=(logo_width_in_pixels, logo_height_in_pixels), 
+                     zoom=0.15, # Use a small zoom value to make the logo smaller
                      interpolation='antialiased')
 
     plt.tight_layout()
