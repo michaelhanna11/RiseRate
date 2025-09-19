@@ -21,7 +21,7 @@ PROGRAM_INFO = {
     "version": "2.0 - 2025",
     "program_name": "Rise Rate Calculation to AS 3610.2:2023",
     "company_name": "tekhne Consulting Engineers",
-    "company_address": "    "
+    "company_address": "8/104-110 Mount St, North Sydney, NSW 2060"
 }
 LOGO_URL = "https://drive.google.com/uc?export=download&id=1VebdT2loVGX57noP9t2GgQhwCNn8AA3h"
 FALLBACK_LOGO_URL = "https://onedrive.live.com/download?cid=A48CC9068E3FACE0&resid=A48CC9068E3FACE0%21s252b6fb7fcd04f53968b2a09114d33ed"
@@ -47,7 +47,6 @@ def calculate_rate_of_rise(Pmax, D, H_form, T, C1, C2):
         return final_R
     else:
         return float('nan')
-
 
 def get_company_logo():
     """
@@ -135,51 +134,53 @@ def build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(name='TitleStyle', parent=styles['Title'], fontSize=14, spaceAfter=8, alignment=TA_CENTER)
     subtitle_style = ParagraphStyle(name='SubtitleStyle', parent=styles['Normal'], fontSize=10, spaceAfter=8, alignment=TA_CENTER)
-    heading_style = ParagraphStyle(name='HeadingStyle', parent=styles['Heading2'], fontSize=12, spaceAfter=6)
+    heading_style = ParagraphStyle(name='HeadingStyle', parent=styles['Heading2'], fontSize=12, spaceAfter=6, fontName='Helvetica-Bold')
     normal_style = ParagraphStyle(name='NormalStyle', parent=styles['Normal'], fontSize=9, spaceAfter=6)
-    table_header_style = ParagraphStyle(name='TableHeaderStyle', parent=styles['Normal'], fontSize=10, fontName='Helvetica-Bold', alignment=TA_LEFT)
-    table_cell_style = ParagraphStyle(name='TableCellStyle', parent=styles['Normal'], fontSize=8, alignment=TA_LEFT, leading=8)
+    table_header_style = ParagraphStyle(name='TableHeaderStyle', parent=styles['Normal'], fontSize=10, fontName='Helvetica-Bold', alignment=TA_CENTER)
+    table_cell_style = ParagraphStyle(name='TableCellStyle', parent=styles['Normal'], fontSize=8, alignment=TA_CENTER, leading=8)
     
-    table_style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+    table_style_main = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#003366')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, 0), 10),
         ('FONTSIZE', (0, 1), (-1, -1), 8),
-        ('TOPPADDING', (0, 0), (-1, -1), 2),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('LEFTPADDING', (0, 0), (-1, -1), 4),
         ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F0F8FF')),
     ])
 
     elements = []
     
-    company_text = f"<b>{PROGRAM_INFO['company_name']}</b><br/>{PROGRAM_INFO['company_address']}"
-    company_paragraph = Paragraph(company_text, normal_style)
-    
-    if logo_buffer:
-        logo = Image(logo_buffer, width=50*mm, height=20*mm)
-    else:
-        logo = Paragraph("[Logo Placeholder]", normal_style)
-    
-    header_data = [[logo, company_paragraph]]
-    header_table = Table(header_data, colWidths=[60*mm, 120*mm])
-    header_table.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('ALIGN', (1, 0), (1, 0), 'CENTER')]))
-    
-    elements.extend([
-        header_table, 
-        Spacer(1, 4*mm), 
-        Paragraph(f"Reported {PROGRAM_INFO['program_name']}", title_style)
-    ])
+    # Updated Header Table
+    company_info = [
+        [Paragraph("<b>tekhne Consulting Engineers</b>", styles['Normal']), Image(logo_buffer, width=50*mm, height=20*mm) if logo_buffer else Paragraph("[Logo Placeholder]", styles['Normal'])],
+        [Paragraph(PROGRAM_INFO['company_address'], styles['Normal']), ""]
+    ]
+    header_table = Table(company_info, colWidths=[120*mm, 60*mm])
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+        ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('LEFTPADDING', (0, 0), (0, -1), 0),
+        ('RIGHTPADDING', (1, 0), (1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('LINEBELOW', (0, -1), (0, -1), 0.5, colors.black),
+    ]))
 
-    project_details = f"Project Number: {project_number}<br/>Project Name: {project_name}<br/>Date: {datetime.now().strftime('%B %d, %Y')}"
     elements.extend([
-        Paragraph(project_details, subtitle_style), 
-        Spacer(1, 2*mm), 
+        header_table,
+        Spacer(1, 4*mm),
+        Paragraph(f"Report: {PROGRAM_INFO['program_name']}", title_style),
+        Paragraph(f"Project Number: {project_number} | Project Name: {project_name}<br/>Date: {datetime.now().strftime('%B %d, %Y')}", subtitle_style),
+        Spacer(1, 4*mm),
         Paragraph("Input Parameters", heading_style)
     ])
 
@@ -197,18 +198,12 @@ def build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph
         ["Structure Type (C1)", f"{inputs['structure_type']} ({inputs['C1']:.1f})"],
     ]
     
-    input_data_formatted = [
-        [Paragraph(row[0], table_header_style if i == 0 else table_cell_style),
-         Paragraph(row[1], table_header_style if i == 0 else table_cell_style)] 
-        for i, row in enumerate(input_data)
-    ]
-    
-    input_table = Table(input_data_formatted, colWidths=[100*mm, 80*mm])
-    input_table.setStyle(table_style)
+    input_table = Table(input_data, colWidths=[100*mm, 80*mm])
+    input_table.setStyle(table_style_main)
     
     elements.extend([
-        input_table, 
-        Spacer(1, 4*mm), 
+        input_table,
+        Spacer(1, 4*mm),
         Paragraph("Rate of Rise vs Temperature Graph", heading_style)
     ])
     
@@ -233,7 +228,7 @@ def build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph
         summary_data.append([f"{T:.1f}", f"{R:.2f}"])
 
     summary_table = Table(summary_data, colWidths=[90*mm, 90*mm])
-    summary_table.setStyle(table_style)
+    summary_table.setStyle(table_style_main)
     elements.append(summary_table)
 
     return elements
@@ -338,10 +333,10 @@ def main():
                 )
 
                 st.download_button(
-                    label="Download Graph as JPG",
+                    label="Download Graph as PNG", # Change from JPG to PNG
                     data=graph_buffer,
-                    file_name=f"Rise_Rate_Graph_{project_name.replace(' ', '_')}.jpg",
-                    mime="image/jpeg"
+                    file_name=f"Rise_Rate_Graph_{project_name.replace(' ', '_')}.png", # Change file extension
+                    mime="image/png"
                 )
                 
                 st.success(f"Maximum calculated rate of rise for your selected parameters is: **{max_R:.2f} m/hr**")
