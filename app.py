@@ -12,7 +12,7 @@ import io
 from datetime import datetime
 import streamlit as st
 import warnings
-from PIL import Image as PilImage # Added Pillow import
+from PIL import Image as PilImage
 
 # Suppress runtime warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -62,7 +62,7 @@ def get_company_logo():
         pass
     return None
 
-def create_graph_image(inputs, project_name, show_all_c2):
+def create_graph_image(inputs, project_name, design_name, show_all_c2):
     """
     Generates a graph of Rise Rate vs. Temperature.
     Includes the company logo on the graph itself.
@@ -99,7 +99,7 @@ def create_graph_image(inputs, project_name, show_all_c2):
     
     ax.set_xlabel('Temperature (°C)', fontsize=12)
     ax.set_ylabel('Rate of Rise (m/hr)', fontsize=12)
-    ax.set_title(f'Rate of Rise vs Temperature - {project_name}', fontsize=14, pad=20)
+    ax.set_title(f'Rate of Rise vs Temperature - {project_name} | {design_name}', fontsize=14, pad=20)
     ax.grid(True, linestyle='--', alpha=0.6)
     ax.legend(fontsize=10, framealpha=1)
     ax.set_ylim(0, y_max)
@@ -152,7 +152,7 @@ def create_graph_image(inputs, project_name, show_all_c2):
     buf.seek(0)
     return buf, max_R, y_max
 
-def build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph_buffer, logo_buffer):
+def build_pdf_elements(inputs, max_R, y_max, project_number, project_name, design_name, graph_buffer, logo_buffer):
     """
     Builds the list of elements for the PDF report.
     """
@@ -204,7 +204,7 @@ def build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph
         header_table,
         Spacer(1, 2*mm),
         Paragraph(f"Report: {PROGRAM_INFO['program_name']}", title_style),
-        Paragraph(f"Project Number: {project_number} | Project Name: {project_name}<br/>Date: {datetime.now().strftime('%B %d, %Y')}", subtitle_style),
+        Paragraph(f"Project Number: {project_number} | Project Name: {project_name} | Design Name: {design_name}<br/>Date: {datetime.now().strftime('%B %d, %Y')}", subtitle_style),
         Spacer(1, 2*mm),
         Paragraph("Input Parameters", heading_style)
     ])
@@ -241,7 +241,7 @@ def build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph
     
     return elements
 
-def generate_pdf_report(inputs, max_R, y_max, project_number, project_name, graph_buffer, logo_buffer):
+def generate_pdf_report(inputs, max_R, y_max, project_number, project_name, design_name, graph_buffer, logo_buffer):
     """
     Generates the final PDF document.
     """
@@ -250,7 +250,7 @@ def generate_pdf_report(inputs, max_R, y_max, project_number, project_name, grap
                             leftMargin=15*mm, rightMargin=15*mm, 
                             topMargin=10*mm, bottomMargin=10*mm)
     
-    elements = build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph_buffer, logo_buffer)
+    elements = build_pdf_elements(inputs, max_R, y_max, project_number, project_name, design_name, graph_buffer, logo_buffer)
 
     def footer(canvas, doc):
         canvas.saveState()
@@ -282,6 +282,7 @@ def main():
     with st.form("input_form"):
         project_number = st.text_input("Project Number", "TK-2025001")
         project_name = st.text_input("Project Name", "Project")
+        design_name = st.text_input("Design Name", "Wall")
         
         inputs = {
             'D': st.number_input("Wet Concrete Density (kN/m³)", min_value=0.0, max_value=30.0, value=25.0, help="Density of the fresh concrete."),
@@ -321,7 +322,7 @@ def main():
 
         try:
             # Create graph and get max values
-            graph_buffer, max_R, y_max = create_graph_image(inputs, project_name, show_all_c2)
+            graph_buffer, max_R, y_max = create_graph_image(inputs, project_name, design_name, show_all_c2)
             
             # Display graph in Streamlit
             st.image(graph_buffer)
@@ -331,7 +332,7 @@ def main():
             
             # Generate PDF
             with st.spinner("Generating PDF report..."):
-                pdf_buffer = generate_pdf_report(inputs, max_R, y_max, project_number, project_name, graph_buffer, logo_buffer)
+                pdf_buffer = generate_pdf_report(inputs, max_R, y_max, project_number, project_name, design_name, graph_buffer, logo_buffer)
                 
                 st.download_button(
                     label="Download PDF Report",
