@@ -121,13 +121,12 @@ def create_graph_image(inputs, project_name, show_all_c2):
                     ax.text(T, R + max_R * 0.02, f'{R:.2f}', fontsize=9, ha='center', va='bottom', 
                             bbox=dict(facecolor='white', alpha=0.8, edgecolor='none', pad=1))
 
-    # --- Add company logo to the graph ---
+    # --- Add company logo to the graph (new, fixed position) ---
     logo_data = get_company_logo()
     if logo_data:
         logo_img = plt.imread(logo_data)
-        # Position the logo (adjust x, y, zoom for desired placement and size)
-        # x, y are normalized coordinates (0 to 1) for the bottom-left corner
-        # We'll place it in the bottom right, slightly inset.
+        # Position the logo in the lower right corner, just above the horizontal axis.
+        # The coordinates are normalized to the figure size (0 to 1).
         fig.figimage(logo_img, xo=fig.bbox.width - (logo_img.shape[1] * 0.15) - 50,
                      yo=50, origin='upper', zorder=10, alpha=0.7,
                      resize=True,
@@ -190,10 +189,10 @@ def build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph
 
     elements.extend([
         header_table,
-        Spacer(1, 4*mm),
+        Spacer(1, 2*mm), # Reduced spacer
         Paragraph(f"Report: {PROGRAM_INFO['program_name']}", title_style),
         Paragraph(f"Project Number: {project_number} | Project Name: {project_name}<br/>Date: {datetime.now().strftime('%B %d, %Y')}", subtitle_style),
-        Spacer(1, 4*mm),
+        Spacer(1, 2*mm), # Reduced spacer
         Paragraph("Input Parameters", heading_style)
     ])
 
@@ -216,12 +215,12 @@ def build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph
     
     elements.extend([
         input_table,
-        Spacer(1, 4*mm),
+        Spacer(1, 2*mm), # Reduced spacer
         Paragraph("Rate of Rise vs Temperature Graph", heading_style)
     ])
     
     if graph_buffer:
-        graph_image = RLImage(graph_buffer, width=160*mm, height=120*mm)
+        graph_image = RLImage(graph_buffer, width=140*mm, height=105*mm) # Reduced graph size
     else:
         graph_image = Paragraph("[Graph Placeholder]", normal_style)
     
@@ -236,7 +235,7 @@ def generate_pdf_report(inputs, max_R, y_max, project_number, project_name, grap
     pdf_buffer = io.BytesIO()
     doc = SimpleDocTemplate(pdf_buffer, pagesize=A4, 
                             leftMargin=15*mm, rightMargin=15*mm, 
-                            topMargin=15*mm, bottomMargin=15*mm)
+                            topMargin=10*mm, bottomMargin=10*mm) # Reduced top/bottom margins
     
     elements = build_pdf_elements(inputs, max_R, y_max, project_number, project_name, graph_buffer, logo_buffer)
 
@@ -314,7 +313,7 @@ def main():
             # Display graph in Streamlit
             st.image(graph_buffer)
             
-            # Get company logo (re-fetch as it's used in PDF build_pdf_elements too, though graph_buffer now has it)
+            # Get company logo
             logo_buffer = get_company_logo()
             
             # Generate PDF
