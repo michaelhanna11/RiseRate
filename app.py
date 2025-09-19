@@ -13,7 +13,7 @@ from datetime import datetime
 import streamlit as st
 import warnings
 
-# Corrected function name to filterwarnings
+# Suppress runtime warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 # Program metadata
@@ -127,13 +127,11 @@ def create_graph_image(inputs, project_name, show_all_c2):
         logo_img = plt.imread(logo_data)
         # Position the logo (adjust x, y, zoom for desired placement and size)
         # x, y are normalized coordinates (0 to 1) for the bottom-left corner
-        # zoom controls the size of the logo.
         # We'll place it in the bottom right, slightly inset.
         fig.figimage(logo_img, xo=fig.bbox.width - (logo_img.shape[1] * 0.15) - 50,
                      yo=50, origin='upper', zorder=10, alpha=0.7,
                      resize=True,
-                     interpolation='high',
-                     cmap='Greys')
+                     interpolation='antialiased')
 
     plt.tight_layout()
     buf = io.BytesIO()
